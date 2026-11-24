@@ -1,0 +1,22 @@
+[build]
+  publish = "deploy"
+  functions = "netlify/functions"
+
+# API аккаунтов живёт в функции; сайт — статика
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Боты: один тик каждые 20 минут (функция netlify/functions/bots-tick.js)
+[functions."bots-tick"]
+  schedule = "*/20 * * * *"
+
+# Прямой эфир: мелкие действия ботов раз в минуту (функция netlify/functions/bot-live.js)
+[functions."bot-live"]
+  schedule = "* * * * *"

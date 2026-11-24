@@ -1,0 +1,369 @@
+/* ============================================================
+   DE Exchange · верхняя панель как 3D-плашка
+   Самодостаточный CSS: работает и без topbar-3d.js.
+   Layout не меняется — только transform, тени, фоны и псевдоэлементы.
+   ============================================================ */
+
+/* ---------- сцена, «дыхание», переменные ---------- */
+.tb3d-stage {
+  position: relative; z-index: 2;
+  perspective: 2600px; perspective-origin: 50% 50%;
+  --tb3d-rx: 0deg; --tb3d-ry: 0deg;
+  --tb3d-mx: 42%; --tb3d-my: 28%;
+  --tb3d-sh-x: 0px; --tb3d-sh-y: 22px; --tb3d-sh-s: 1;
+}
+.tb3d-breathe {
+  position: relative; transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  animation: tb3dIdle 10.5s ease-in-out infinite;
+}
+@keyframes tb3dIdle {
+  0%, 100% { transform: translateY(0) rotateX(0deg); }
+  50%      { transform: translateY(-2.5px) rotateX(.6deg); }
+}
+
+/* ---------- плашка ---------- */
+.topbar {
+  position: relative; z-index: 2;
+  overflow: visible;
+  transform-style: preserve-3d; transform-origin: 50% 50%;
+  transform: rotateX(var(--tb3d-rx)) rotateY(var(--tb3d-ry));
+  will-change: transform;
+  background:
+    radial-gradient(ellipse at 18% -10%, rgba(255,255,255,.72), transparent 55%),
+    linear-gradient(150deg,
+      rgba(255,252,244,.84) 0%, rgba(255,242,218,.58) 36%,
+      rgba(255,247,233,.48) 64%, rgba(255,255,255,.72) 100%);
+  border: 1px solid rgba(255,246,226,.82);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.82),
+    inset 0 -2px 0 rgba(160,103,28,.14);
+  /* blur переехал на отдельный слой: backdrop-filter сплющивает 3D */
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+body.dark .topbar {
+  background:
+    radial-gradient(ellipse at 16% -12%, rgba(255,214,140,.10), transparent 52%),
+    linear-gradient(150deg,
+      rgba(255,255,255,.085) 0%, rgba(255,255,255,.030) 38%,
+      rgba(255,184,92,.045) 64%, rgba(255,255,255,.070) 100%);
+  border-color: rgba(247,220,166,.24);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.16),
+    inset 0 -2px 0 rgba(0,0,0,.42);
+}
+
+/* стеклянный blur под плашкой */
+.tb3d-backdrop {
+  position: absolute; inset: 0; border-radius: 28px;
+  pointer-events: none; z-index: -1;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0));
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  transform: rotateX(var(--tb3d-rx)) rotateY(var(--tb3d-ry));
+  transform-origin: 50% 50%;
+}
+body.dark .tb3d-backdrop {
+  background: linear-gradient(180deg, rgba(8,15,24,.16), rgba(4,8,13,.05));
+}
+
+/* отдельная тень: двигаем transform, а не box-shadow каждый кадр */
+.tb3d-shadow {
+  position: absolute; inset: 0; border-radius: 28px;
+  pointer-events: none; z-index: -3;
+  box-shadow: 0 26px 60px rgba(112,66,8,.26), 0 8px 22px rgba(112,66,8,.14);
+  transform: translate3d(var(--tb3d-sh-x), var(--tb3d-sh-y), -40px) scale(var(--tb3d-sh-s));
+  transform-origin: 50% 50%; will-change: transform;
+}
+body.dark .tb3d-shadow {
+  box-shadow: 0 30px 70px rgba(0,0,0,.66), 0 10px 26px rgba(0,0,0,.46);
+}
+
+/* ---------- торец-толщина ---------- */
+.tb3d-edge {
+  position: absolute; inset: 0; border-radius: 28px;
+  pointer-events: none; z-index: -2;
+  background: linear-gradient(180deg,
+    rgba(70,42,10,0) 22%, rgba(92,57,18,.55) 58%, #5b3914 84%, #3a230b 100%);
+  box-shadow: 0 2px 0 rgba(255,226,166,.18) inset;
+  transform: rotateX(var(--tb3d-rx)) rotateY(var(--tb3d-ry)) translateY(12px) translateZ(-14px);
+  transform-origin: 50% 50%;
+}
+body.dark .tb3d-edge {
+  background: linear-gradient(180deg,
+    rgba(2,6,11,0) 20%, rgba(7,16,26,.72) 58%, #0a1520 84%, #03080d 100%);
+  box-shadow: 0 2px 0 rgba(247,220,166,.14) inset;
+}
+
+/* золотой кант; старый блик отключаем — вместо него свой */
+.topbar::before { z-index: 4; transform: translateZ(1px); }
+.topbar::after { display: none !important; }
+
+/* ---------- блики внутри плашки ---------- */
+.tb3d-glass {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; overflow: hidden;
+  pointer-events: none; transform: translateZ(1px);
+}
+.tb3d-specular {
+  position: absolute; inset: -12%; pointer-events: none;
+  background: radial-gradient(circle at var(--tb3d-mx) var(--tb3d-my),
+    rgba(255,252,236,.50) 0%, rgba(255,222,158,.22) 26%,
+    rgba(255,204,120,.06) 46%, transparent 66%);
+}
+.tb3d-sheen {
+  position: absolute; top: -60%; left: -45%; width: 42%; height: 220%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.52), transparent);
+  transform: rotate(14deg); opacity: 0; pointer-events: none;
+  animation: tb3dSheen 9.5s ease-in-out infinite;
+  will-change: left, opacity;
+}
+@keyframes tb3dSheen {
+  0%, 58% { left: -45%; opacity: 0; }
+  66%     { opacity: .9; }
+  100%    { left: 118%; opacity: 0; }
+}
+body.dark .tb3d-specular {
+  background: radial-gradient(circle at var(--tb3d-mx) var(--tb3d-my),
+    rgba(255,236,190,.22) 0%, rgba(255,186,92,.10) 28%,
+    rgba(255,160,50,.03) 48%, transparent 68%);
+}
+body.dark .tb3d-sheen {
+  background: linear-gradient(100deg, transparent, rgba(255,220,160,.18), transparent);
+}
+
+/* ---------- монета KNT: настоящий 3D-стек ---------- */
+.tb3d-coin-parallax {
+  position: relative; flex: 0 0 auto;
+  width: 104px; height: 104px; z-index: 3;
+  pointer-events: none; transform-style: preserve-3d;
+  transform: translateZ(42px);
+}
+.tb3d-coin-parallax::before {
+  content: ''; position: absolute; inset: -12%; z-index: -1;
+  pointer-events: none; transform: translateZ(-28px);
+  background: radial-gradient(circle, rgba(255,196,84,.32), rgba(255,140,26,.08) 52%, transparent 70%);
+}
+body.dark .tb3d-coin-parallax::before {
+  background: radial-gradient(circle, rgba(255,196,84,.38), rgba(255,140,26,.10) 52%, transparent 70%);
+}
+.tb3d-coin {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d; transform-origin: 50% 50%;
+  animation: tb3dCoinSway 8s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes tb3dCoinSway {
+  0%, 100% { transform: perspective(640px) rotateY(-14deg) rotateX(3deg); }
+  50%      { transform: perspective(640px) rotateY(14deg) rotateX(-3deg); }
+}
+.tb3d-coin-face {
+  position: absolute; inset: 0; display: block;
+  width: 100%; height: 100%; backface-visibility: visible;
+}
+.tb3d-coin .mini-coin {
+  width: 100% !important; height: 100% !important;
+  animation: none !important; filter: none !important;
+  transform: translateZ(8.5px);
+}
+.tb3d-coin .coin-sheen,
+.tb3d-coin .coin-rimlight { animation: none !important; }
+.tb3d-coin-front { transform: translateZ(8.5px); }
+.tb3d-coin-back {
+  transform: translateZ(-8.5px) scaleX(-1);
+  filter: brightness(.55) saturate(.85);
+}
+.tb3d-coin-edge { filter: brightness(.62) saturate(.92); }
+.tb3d-coin-glint {
+  position: absolute; inset: 0; z-index: 2;
+  border-radius: 50%; clip-path: circle(48% at 50% 50%);
+  background: linear-gradient(112deg,
+    transparent 34%, rgba(255,255,255,.10) 42%, rgba(255,255,255,.72) 49%,
+    rgba(255,255,255,.12) 56%, transparent 64%);
+  transform: translateZ(12px) translateX(-135%);
+  opacity: 0; pointer-events: none;
+  animation: tb3dCoinGlint 5.4s ease-in-out infinite;
+}
+@keyframes tb3dCoinGlint {
+  0%, 54% { transform: translateZ(12px) translateX(-135%); opacity: 0; }
+  60%     { opacity: .95; }
+  100%    { transform: translateZ(12px) translateX(135%); opacity: 0; }
+}
+
+/* ---------- глубина слоёв ---------- */
+.topbar .brand-text,
+.topbar .top-actions { transform-style: preserve-3d; }
+.topbar .brand-text { z-index: 2; }
+.topbar .top-actions { z-index: 2; transform: translateZ(8px); }
+.topbar h1 { transform: translateZ(22px); }
+.topbar .sub { transform: translateZ(14px); }
+
+/* ---------- заголовок: узкий системный шрифт + объём ---------- */
+.topbar h1,
+body.dark .topbar h1 {
+  font-family: 'Bahnschrift SemiCondensed', 'Bahnschrift', 'DIN Condensed', 'Oswald',
+               'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+  font-weight: 700; font-stretch: semi-condensed;
+  text-transform: uppercase; letter-spacing: .035em;
+  color: transparent;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(255,255,255,.38) 22%, rgba(255,255,255,0) 44%),
+    linear-gradient(100deg, #fff8e7 0%, #ffd8a8 18%, #ff8c1a 38%, #a63c00 52%, #ffb347 70%, #fff3d6 88%, #ff8c1a 100%);
+  background-size: 100% 100%, 240% auto;
+  background-position: 0 0, 0 center;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-stroke: .7px rgba(255,160,50,.30);
+  text-shadow:
+    0 2px 0 #7a4a10, 0 4px 0 #6a3f0d,
+    0 6px 0 #58330a, 0 8px 0 #452706,
+    0 12px 20px rgba(36,16,2,.35);
+  filter: drop-shadow(0 0 24px rgba(255,140,26,.30));
+}
+.topbar .sub,
+body.dark .topbar .sub {
+  text-transform: uppercase; letter-spacing: .26em;
+  font-size: 11.5px; font-weight: 700;
+  color: #7d6749; text-shadow: 0 1px 0 rgba(255,255,255,.55);
+}
+body.dark .topbar .sub {
+  color: #b9a98e; text-shadow: 0 1px 0 rgba(0,0,0,.55);
+}
+
+/* ---------- кнопки-клавиши ---------- */
+.topbar .btn {
+  border-radius: 12px; border: 1px solid rgba(255,239,208,.92);
+  color: #5b3f1b;
+  background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,241,215,.40));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 0 rgba(145,92,22,.14),
+    0 3px 0 rgba(133,82,16,.30),
+    0 7px 14px rgba(112,66,8,.13);
+  transition: transform .18s ease, box-shadow .18s ease,
+              border-color .18s ease, color .18s ease, background .18s ease;
+}
+.topbar .btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,198,96,.95); color: #4a300d;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -1px 0 rgba(145,92,22,.12),
+    0 5px 0 rgba(133,82,16,.28),
+    0 10px 20px rgba(112,66,8,.16),
+    0 0 22px rgba(255,140,26,.34);
+}
+.topbar .btn:active {
+  transform: translateY(2px); transition-duration: 90ms;
+  box-shadow:
+    inset 0 2px 4px rgba(100,58,8,.28),
+    inset 0 1px 0 rgba(255,255,255,.25),
+    0 1px 0 rgba(133,82,16,.22),
+    0 2px 5px rgba(112,66,8,.16);
+}
+.topbar .btn.primary {
+  border-color: rgba(255,208,130,.98); color: #3c1f03;
+  background: linear-gradient(180deg, #ffe3ad 0%, #ffc266 34%, #ff9c2c 72%, #e97d09 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -2px 0 rgba(160,74,0,.26),
+    0 3px 0 #9c5205,
+    0 8px 18px rgba(214,107,6,.32),
+    0 0 24px rgba(255,140,26,.30);
+  text-shadow: 0 1px 0 rgba(255,255,255,.42);
+}
+.topbar .btn.primary:hover,
+body.dark .topbar .btn.primary:hover {
+  color: #301801; border-color: #ffe3ad;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -2px 0 rgba(160,74,0,.22),
+    0 5px 0 #904a04,
+    0 12px 24px rgba(214,107,6,.38),
+    0 0 32px rgba(255,156,44,.55);
+}
+.topbar .btn.ghost {
+  border-color: rgba(255,248,232,.86); color: #6a5231;
+  background: linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,247,232,.22));
+}
+body.dark .topbar .btn {
+  border-color: rgba(247,220,166,.26); color: #e5d4b3;
+  background: linear-gradient(180deg, rgba(255,255,255,.095), rgba(255,255,255,.030));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -1px 0 rgba(0,0,0,.38),
+    0 3px 0 rgba(0,0,0,.62),
+    0 7px 14px rgba(0,0,0,.34);
+}
+body.dark .topbar .btn.ghost {
+  border-color: rgba(255,255,255,.15); color: #cbb996;
+  background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.022));
+}
+body.dark .topbar .btn.primary {
+  border-color: rgba(255,208,130,.95); color: #3a1d02;
+  background: linear-gradient(180deg, #ffe3ad 0%, #ffc266 34%, #ff9c2c 72%, #e97d09 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -2px 0 rgba(150,68,0,.30),
+    0 3px 0 #914b04,
+    0 10px 22px rgba(0,0,0,.45),
+    0 0 28px rgba(255,140,26,.34);
+}
+body.dark .topbar .btn:active {
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 1px 0 rgba(0,0,0,.50),
+    0 2px 6px rgba(0,0,0,.40);
+}
+
+/* ---------- тач и узкие экраны: статика + мягкий блик ---------- */
+@media (max-width: 899px), (pointer: coarse) {
+  .tb3d-breathe { animation: none; transform: none; }
+  .topbar { transform: none !important; }
+  .topbar h1, .topbar .sub, .topbar .top-actions,
+  .tb3d-coin-parallax { transform: none !important; }
+  .tb3d-coin { animation: none; transform: perspective(640px) rotateY(-12deg) rotateX(3deg); }
+  .tb3d-coin-glint {
+    animation: none; opacity: .38;
+    transform: translateZ(12px) translateX(-34%);
+  }
+  .tb3d-specular {
+    background: radial-gradient(circle at 30% 18%,
+      rgba(255,250,232,.34) 0%, rgba(255,214,150,.12) 30%, transparent 62%);
+  }
+  .tb3d-sheen { animation: none; opacity: 0; }
+  .tb3d-edge { transform: translateY(10px) translateZ(-12px); }
+  .tb3d-backdrop { transform: none; }
+}
+@media (max-width: 720px) {
+  .tb3d-edge, .tb3d-backdrop, .tb3d-shadow { border-radius: 22px; }
+}
+@media (max-width: 620px) {
+  .tb3d-coin-parallax { width: 80px; height: 80px; }
+}
+
+/* ---------- reduced motion: всё замирает ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tb3d-breathe, .tb3d-coin, .tb3d-coin-glint, .tb3d-sheen,
+  .topbar h1, .topbar::after { animation: none !important; }
+  .tb3d-breathe { transform: none !important; }
+  .topbar { transform: none !important; }
+  .tb3d-coin { transform: perspective(640px) rotateY(-11deg) rotateX(2deg); }
+  .tb3d-coin-glint { opacity: .30; transform: translateZ(12px) translateX(-30%); }
+  .tb3d-sheen { display: none; }
+  .tb3d-specular {
+    background: radial-gradient(circle at 34% 20%,
+      rgba(255,250,232,.30) 0%, rgba(255,214,150,.10) 30%, transparent 62%);
+  }
+  .tb3d-edge { transform: translateY(10px) translateZ(-12px); }
+  .tb3d-backdrop { transform: none; }
+  .topbar .btn { transition: none; }
+}
+
+/* пауза, когда вкладка скрыта */
+body.tb3d-page-hidden .tb3d-breathe,
+body.tb3d-page-hidden .tb3d-coin,
+body.tb3d-page-hidden .tb3d-coin-glint,
+body.tb3d-page-hidden .tb3d-sheen,
+body.tb3d-page-hidden .topbar h1 { animation-play-state: paused !important; }
